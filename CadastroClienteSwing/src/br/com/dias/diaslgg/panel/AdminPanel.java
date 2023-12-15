@@ -330,24 +330,37 @@ public class AdminPanel extends javax.swing.JFrame {
             return;
         }
         
-        User user = new User(username, password, name, cpf, phone,
+        try {
+            User user = new User(username, password, name, cpf, phone,
                 address, addressNumber, city, countryState, privileges);
+            
+            Boolean isSignedUp = this.userDAO.signup(user);
         
-        Boolean isSignedUp = this.userDAO.signup(user);
-        
-        if (isSignedUp) {
-            usersTable.addRow(new Object[]{user.getName(), user.getCpf(),
-            user.getUsername(), user.getPassword(), user.getPhone(),
-            user.getAddress(), user.getAddressNumber(), user.getCity(),
-            user.getCountryState(), user.getPrivileges()});
-            clearFields();
-        } else {
-            JOptionPane.showMessageDialog(null,
-                    "User is already registered", "Information",
+            if (isSignedUp) {
+                usersTable.addRow(new Object[]{user.getName(), user.getCpf(),
+                user.getUsername(), user.getPassword(), user.getPhone(),
+                user.getAddress(), user.getAddressNumber(), user.getCity(),
+                user.getCountryState(), user.getPrivileges()});
+                clearFields();
+            
+                JOptionPane.showMessageDialog(null,
+                    "Hi " + name + ", nice to have you here with us!",
+                    "Welcome",
                     JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "User is already registered", "Information",
+                        JOptionPane.INFORMATION_MESSAGE);
+                clearFields();
+            }
+                
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null,
+                    "Use only numbers for CPF, Phone and Address Number",
+                    "Error",
+                    JOptionPane.INFORMATION_MESSAGE);
+            clearFields();
         }
-        
-        //think of some validation of fields
     }//GEN-LAST:event_jButtonSaveActionPerformed
 
     private void UsersTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_UsersTableMouseClicked
@@ -369,9 +382,30 @@ public class AdminPanel extends javax.swing.JFrame {
     }//GEN-LAST:event_UsersTableMouseClicked
 
     private void jButtonRemoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonRemoveActionPerformed
-        int selectedRow = UsersTable.getSelectedRow();
+        if (!isValid(txtCpf.getText())) {
+            JOptionPane.showMessageDialog(null,
+                    "CPF is a required field", "Error",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
         
-        if (selectedRow >= 0) {
+        Long cpf = Long.valueOf(txtCpf.getText().trim());
+        User user = this.userDAO.check(cpf);
+        
+        
+        if (user != null) {
+            
+            Integer rowCount = UsersTable.getRowCount();
+            Integer rowNumber = null;
+            for (Integer row = 0; row < rowCount; row++) {
+                String test = UsersTable.getValueAt(row, 1).toString();
+                if (test.equals(user.getCpf().toString())) {
+                    rowNumber = row;
+                    
+                }
+
+            }
+            
             int result = JOptionPane.showConfirmDialog(this,
                     "Do you really want to remove this user?",
                     "Atention",
@@ -379,9 +413,8 @@ public class AdminPanel extends javax.swing.JFrame {
                     JOptionPane.QUESTION_MESSAGE);
             
             if (result == JOptionPane.YES_OPTION) {
-                Long cpf = (Long) UsersTable.getValueAt(selectedRow, 1);
                 this.userDAO.delete(cpf);
-                usersTable.removeRow(selectedRow);
+                usersTable.removeRow(rowNumber);
                 
                 JOptionPane.showMessageDialog(null,
                         "User removed successfully", "Success",
@@ -390,7 +423,7 @@ public class AdminPanel extends javax.swing.JFrame {
             }
         } else {
             JOptionPane.showMessageDialog(null,
-                    "No user selected", "Error",
+                    "CPF was not found", "Error",
                     JOptionPane.INFORMATION_MESSAGE);
         }
                 
@@ -411,7 +444,8 @@ public class AdminPanel extends javax.swing.JFrame {
         Long cpf = Long.valueOf(txtCpf.getText().trim());
         User user = this.userDAO.check(cpf);
         
-        if (user != null) {
+        try {
+            if (user != null) {
             Integer rowCount = UsersTable.getRowCount();
             Integer rowNumber = null;
             for (Integer row = 0; row < rowCount; row++) {
@@ -493,46 +527,71 @@ public class AdminPanel extends javax.swing.JFrame {
                 UsersTable.setValueAt(user.getPrivileges(),
                         rowNumber, 9);
             }
-        } else {
+            
             JOptionPane.showMessageDialog(null,
-                    "CPF not found", "Error",
+                    "The information was successfully edited",
+                    "Complete",
                     JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "CPF was not found", "Error",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+
+            clearFields();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null,
+                    "Use only numbers for CPF, Phone and Address Number",
+                    "Error",
+                    JOptionPane.INFORMATION_MESSAGE);
+            clearFields();
         }
         
-        clearFields();
                 
     }//GEN-LAST:event_jButtonEditActionPerformed
 
     private void jButtonSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSearchActionPerformed
-        if (!isValid(txtCpf.getText())) {
-            JOptionPane.showMessageDialog(null,
-                    "CPF is a required field", "Error",
-                    JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
+        try {
+            if (!isValid(txtCpf.getText())) {
+                JOptionPane.showMessageDialog(null,
+                        "CPF is a required field", "Error",
+                        JOptionPane.INFORMATION_MESSAGE);
+                clearFields();
+                return;
+            }
+
+            Long cpf = Long.valueOf(txtCpf.getText().trim());
+            User user = this.userDAO.check(cpf);
+
+            if (user != null) {
+                txtName.setText(user.getName());
+                txtCpf.setText(user.getCpf().toString());
+                txtAddress.setText(user.getAddress());
+                txtAddressNumber.setText(user.getAddressNumber().toString());
+                txtCity.setText(user.getCity());
+                txtCountryState.setText(user.getCountryState());
+                txtPassword.setText(user.getPassword());
+                txtPhone.setText(user.getPhone().toString());
+                txtUsername.setText(user.getUsername());
+                jComboBoxPrivileges.setSelectedItem(user.getPrivileges());
+
+
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "CPF not found", "Error",
+                        JOptionPane.INFORMATION_MESSAGE);
+                clearFields();
+            }
         
-        Long cpf = Long.valueOf(txtCpf.getText().trim());
-        User user = this.userDAO.check(cpf);
-        
-        if (user != null) {
-            txtName.setText(user.getName());
-            txtCpf.setText(user.getCpf().toString());
-            txtAddress.setText(user.getAddress());
-            txtAddressNumber.setText(user.getAddressNumber().toString());
-            txtCity.setText(user.getCity());
-            txtCountryState.setText(user.getCountryState());
-            txtPassword.setText(user.getPassword());
-            txtPhone.setText(user.getPhone().toString());
-            txtUsername.setText(user.getUsername());
-            jComboBoxPrivileges.setSelectedItem(user.getPrivileges());
-            
-            
-        } else {
+        } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null,
-                    "CPF not found", "Error",
+                    "Use only numbers for CPF",
+                    "Error",
                     JOptionPane.INFORMATION_MESSAGE);
             clearFields();
         }
+        
+        
     }//GEN-LAST:event_jButtonSearchActionPerformed
 
     /**
@@ -643,6 +702,7 @@ public class AdminPanel extends javax.swing.JFrame {
         return Arrays.stream(fields).
                 allMatch(s -> Objects.nonNull(s) && !s.trim().isEmpty());
     }
+    
 
 }
 
